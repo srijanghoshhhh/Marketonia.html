@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Marketonia</title>
+  <style>
+    :root {
+      --primary: #1e1f26;
+      --secondary: #272932;
+      --accent: #f05454;
+      --light: #f1f1f1;
+      --text: #e0e0e0;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      background-color: var(--primary);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background: var(--accent);
+      color: #fff;
+      padding: 1.5rem;
+      text-align: center;
+      font-size: 2.5rem;
+    }
+    nav {
+      background-color: var(--secondary);
+      display: flex;
+      justify-content: space-around;
+      padding: 1rem;
+    }
+    nav a {
+      color: var(--light);
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 5px;
+      transition: background 0.3s;
+    }
+    nav a:hover {
+      background: var(--accent);
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      padding: 1rem;
+      gap: 1rem;
+      background: #2d2f39;
+    }
+    .controls input, .controls select {
+      padding: 0.5rem;
+      border-radius: 5px;
+      border: none;
+    }
+    .container {
+      flex: 1;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+    }
+    .product {
+      background-color: var(--secondary);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s;
+    }
+    .product:hover {
+      transform: translateY(-5px);
+    }
+    .product img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-bottom: 2px solid var(--accent);
+    }
+    .product h3, .product p {
+      text-align: center;
+    }
+    .cart-btn {
+      margin: 1rem auto;
+      display: block;
+      padding: 0.6rem 1.2rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 30px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .cart-btn:hover {
+      background: #d94343;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      color: #000;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      z-index: 10;
+      max-width: 400px;
+      width: 90%;
+    }
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      z-index: 5;
+    }
+    footer {
+      background-color: var(--secondary);
+      text-align: center;
+      padding: 1.2rem;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
+    @media (max-width: 600px) {
+      nav {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>Marketonia</header>
+  <nav>
+    <a href="#">Home</a>
+    <a href="#">Products</a>
+    <a href="#" onclick="showCartModal()">Cart (<span id="cart-count">0</span>)</a>
+    <a href="#" onclick="showDashboard()">Dashboard</a>
+    <a href="#" onclick="showPayment()">Pay</a>
+  </nav>
+  <div class="controls">
+    <input type="text" id="search" placeholder="Search products..." onkeyup="filterProducts()">
+    <select id="category" onchange="filterProducts()">
+      <option value="">All Categories</option>
+      <option value="Laptop">Laptop</option>
+      <option value="Phone">Phone</option>
+      <option value="Headphones">Headphones</option>
+      <option value="Smartwatch">Smartwatch</option>
+      <option value="Jewellery">Jewellery</option>
+      <option value="Clothes">Clothes</option>
+      <option value="Book">Book</option>
+    </select>
+  </div>
+  <main class="container" id="product-list"></main>
+
+  <div class="overlay" id="overlay" onclick="hideModals()"></div>
+
+  <div class="modal" id="cart-modal">
+    <h2>Your Cart</h2>
+    <ul id="cart-items"></ul>
+    <button class="cart-btn" onclick="hideCartModal()">Close</button>
+  </div>
+
+  <div class="modal" id="dashboard-modal">
+    <h2>User Dashboard</h2>
+    <p>Total Orders: <span id="order-count">0</span></p>
+    <button class="cart-btn" onclick="hideDashboard()">Close</button>
+  </div>
+
+  <div class="modal" id="payment-modal">
+    <h2>Payment</h2>
+    <p>Total Amount: ₹<span id="total-amount">0</span></p>
+    <button class="cart-btn" onclick="simulatePayment()">Simulate Payment</button>
+    <button class="cart-btn" onclick="hidePayment()">Cancel</button>
+  </div>
+
+  <footer>
+    <p>&copy; 2025 Marketonia. All rights reserved.</p>
+  </footer>
+
+  <script>
+    const products = [
+      {
+        id: 1,
+        name: "Laptop",
+        price: 59999,
+        category: "Laptop",
+        image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 2,
+        name: "Phone",
+        price: 29999,
+        category: "Phone",
+        image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 3,
+        name: "Headphones",
+        price: 1999,
+        category: "Headphones",
+        image: "https://images.unsplash.com/photo-1580894908361-5e7c686f8f61?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 4,
+        name: "Smartwatch",
+        price: 4999,
+        category: "Smartwatch",
+        image: "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 5,
+        name: "Necklace",
+        price: 7999,
+        category: "Jewellery",
+        image: "https://images.unsplash.com/photo-1603808033192-0829d4271d71?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 6,
+        name: "Earrings",
+        price: 1999,
+        category: "Jewellery",
+        image: "https://images.unsplash.com/photo-1616593999969-22269f87de8e?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 7,
+        name: "T‑Shirt",
+        price: 999,
+        category: "Clothes",
+        image: "https://images.unsplash.com/photo-1589987601226-7c7b681eae43?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 8,
+        name: "Dress",
+        price: 1999,
+        category: "Clothes",
+        image: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 9,
+        name: "Novel – The Alchemist",
+        price: 499,
+        category: "Book",
+        image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 10,
+        name: "Self‑help Book",
+        price: 599,
+        category: "Book",
+        image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80"
+      }
+    ];
+
+    let cart = [];
+    let orderCount = 0;
+
+    function renderProducts() {
+      const list = document.getElementById("product-list");
+      const search = document.getElementById("search").value.toLowerCase();
+      const category = document.getElementById("category").value;
+      list.innerHTML = "";
+      products.filter(p =>
+        (!category || p.category === category) &&
+        (!search || p.name.toLowerCase().includes(search))
+      ).forEach(p => {
+        const div = document.createElement("div");
+        div.className = "product";
+        div.innerHTML = `
+          <img src="${p.image}" alt="${p.name}">
+          <h3>${p.name}</h3>
+          <p>Price: ₹${p.price}</p>
+          <button class="cart-btn" onclick="addToCart(${p.id})">Add to Cart</button>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function addToCart(id) {
+      const product = products.find(p => p.id === id);
+      cart.push(product);
+      document.getElementById("cart-count").innerText = cart.length;
+    }
+
+    function showCartModal() {
+      const cartItems = document.getElementById("cart-items");
+      cartItems.innerHTML = "";
+      cart.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = `${item.name} - ₹${item.price}`;
+        cartItems.appendChild(li);
+      });
+      document.getElementById("cart-modal").style.display = "block";
+      document.getElementById("overlay").style.display = "block";
+    }
+
+    function hideCartModal() {
+      document.getElementById("cart-modal").style.display = "none";
+      document.getElementById("overlay").style.display = "none";
+    }
+
+    function showDashboard() {
+      document.getElementById("order-count").innerText = orderCount;
+      document.getElementById("dashboard-modal").style.display = "block";
+      document.getElementById("overlay").style.display = "block";
+    }
+
+    function hideDashboard() {
+      document.getElementById("dashboard-modal").style.display = "none";
+      document.getElementById("overlay").style.display = "none";
+    }
+
+    function showPayment() {
+      const total = cart.reduce((sum, item) => sum + item.price, 0);
+      document.getElementById("total-amount").innerText = total;
+      document.getElementById("payment-modal").style.display = "block";
+      document.getElementById("overlay").style.display = "block";
+    }
+
+    function hidePayment() {
+      document.getElementById("payment-modal").style.display = "none";
+      document.getElementById("overlay").style.display = "none";
+    }
+
+    function simulatePayment() {
+      if (cart.length === 0) {
+        alert("Your cart is empty!");
+        return;
+      }
+      alert("Payment Successful! Thank you for your purchase.");
+      cart = [];
+      orderCount++;
+      document.getElementById("cart-count").innerText = 0;
+      hidePayment();
+      hideCartModal();
+    }
+
+    function hideModals() {
+      hideCartModal();
+      hideDashboard();
+      hidePayment();
+    }
+
+    function filterProducts() {
+      renderProducts();
+    }
+
+    renderProducts();
+  </script>
+</body>
+</html>
